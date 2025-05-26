@@ -1,0 +1,16 @@
+<h2>Редактировать товар</h2>
+<form action="/admin/products/{{ product.id }}/edit" method="post" enctype="multipart/form-data">
+    <label>Название:</label><br />
+    <input type="text" name="name" value="{{ product.name }}"><br />
+
+    <label>Цена:</label><br />
+    <input type="number" name="price" step="0.01" value="{{ product.price }}"><br />
+
+    <label>Описание:</label><br />
+    <textarea name="description">{{ product.description }}</textarea><br />
+
+    <label>Изображение (оставьте пустым, если не меняете):</label><br />
+    <input type="file" name="image"><br />
+
+    <button type="submit">Сохранить</button>
+</form>
