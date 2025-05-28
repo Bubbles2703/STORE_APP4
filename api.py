@@ -1,5 +1,5 @@
 import os, shutil
-from fastapi import Request, Form, Depends, UploadFile, File
+from fastapi import Request, Form, Depends, UploadFile, File, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -13,7 +13,7 @@ def index(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    products = db.query(Product).filter(Product.quantity > 0).all() if user.role != "admin" else db.query(Product).all()
+    products = db.query(Product).all() if user.role != "admin" else db.query(Product).all()
     return templates.TemplateResponse("index.html", {"request": request, "products": products, "user": user})
 
 def add_product(request: Request, name: str = Form(...), price: float = Form(...), quantity: int = Form(...),
@@ -32,6 +32,56 @@ def add_product(request: Request, name: str = Form(...), price: float = Form(...
     db.add(product)
     db.commit()
     return RedirectResponse("/", status_code=302)
+
+def edit_product_form(
+    request: Request,
+    product_id: int,
+    db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role != "admin":
+        raise HTTPException(status_code=403)
+    product = db.query(Product).get(product_id)
+    return templates.TemplateResponse("edit_product.html", {"request": request, "product": product, "user": user})
+
+
+def update_product(
+        request: Request,
+        product_id: int,
+        name: str = Form(...),
+        price: float = Form(...),
+        quantity: int = Form(...),
+        description: str = Form(None),
+        image: UploadFile = File(None),
+        db: Session = Depends(get_db)
+):
+    user = get_current_user(request, db)
+    if not user or user.role != "admin":
+        raise HTTPException(status_code=403)
+
+    product = db.query(Product).get(product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+
+    product.name = name
+    product.price = price
+    product.quantity = quantity
+    product.description = description
+
+    if image and image.filename:
+        os.makedirs("static/images", exist_ok=True)
+        filename = image.filename
+        image_path = f"static/images/{filename}"
+
+        # 💡 открываем именно путь к файлу
+        with open(image_path, "wb") as f:
+            shutil.copyfileobj(image.file, f)
+
+        # сохраняем относительный путь
+        product.image_path = f"images/{filename}"
+
+    db.commit()
+    return RedirectResponse("/", status_code=302)
+
 
 def delete_product(request: Request, product_id: int, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
@@ -92,3 +142,11 @@ def read_orders(request: Request, db: Session = Depends(get_db)):
     for order in orders:
         order.total_price = sum(item.price * item.quantity for item in order.items)
     return templates.TemplateResponse("orders.html", {"request": request, "orders": orders, "user": user})
+
+def admin_dashboard(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role != "admin":
+        raise HTTPException(status_code=403)
+    from models import User
+    users = db.query(User).all()
+    return templates.TemplateResponse("admin_users_orders.html", {"request": request, "users": users, "user": user})

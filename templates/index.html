@@ -12,6 +12,9 @@
       | <a href="/cart">🛒 Корзина</a>
       | <a href="/orders">Мои заказы</a>
     {% endif %}
+    {% if user.role == 'admin' %}
+      | <a href="/admin/users">Пользователи и заказы</a>
+    {% endif %}
   </p>
 
   {% if user.role == 'admin' %}
@@ -33,27 +36,30 @@
         <th>Название</th>
         <th>Цена</th>
         <th>Количество</th>
-        {% if user.role == 'admin' %}
-          <th>Действия</th>
-        {% else %}
-          <th>В корзину</th>
-        {% endif %}
+        <th>Действия</th>
       </tr>
     </thead>
     <tbody>
       {% for product in products %}
       <tr>
         <td>
-      {{ product.name }}<br />
-      {% if product.image_path %}
-         <img src="/static/{{ product.image_path }}" width="100">
-      {% endif %}
-    </td>
+          {{ product.name }}<br />
+          {% if product.image_path %}
+            <img src="/static/{{ product.image_path }}" width="100" />
+          {% endif %}
+        </td>
         <td>{{ product.name }}</td>
         <td>{{ product.price }} USD</td>
-        <td>{{ product.quantity }}</td>
+        <td>
+          {% if product.quantity > 0 %}
+            {{ product.quantity }}
+          {% else %}
+            <strong>Нет в наличии</strong>
+          {% endif %}
+        </td>
         <td>
           {% if user.role == 'admin' %}
+            <a href="/admin/edit/{{ product.id }}">✏️ Редактировать</a><br />
             <form method="post" action="/delete/{{ product.id }}" style="display:inline;">
               <button type="submit" onclick="return confirm('Удалить товар?')">Удалить</button>
             </form>

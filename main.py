@@ -18,6 +18,10 @@ app.post("/register")(auth.register)
 app.get("/")(api.index)
 app.post("/add")(api.add_product)
 app.post("/delete/{product_id}")(api.delete_product)
+app.get("/admin/edit/{product_id}")(api.edit_product_form)
+app.post("/admin/edit/{product_id}")(api.update_product)
+app.get("/admin/users")(api.admin_dashboard)
+
 
 # Cart
 app.get("/cart")(api.view_cart)
